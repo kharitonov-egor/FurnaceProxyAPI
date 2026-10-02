@@ -91,6 +91,9 @@ func (s *Service) Run(ctx context.Context) error {
 		interval := 15 * time.Minute
 		s.coreManager.StartAutoRefresh(ctx, interval)
 		log.Infof("core auth auto-refresh started (interval=%s)", interval)
+		if s.appliedRoutingState != nil {
+			s.resetAware.reconcile(s.coreManager, s.currentResetAwareConfig, *s.appliedRoutingState)
+		}
 	}
 
 	if !homeEnabled {
@@ -234,6 +237,7 @@ func (s *Service) Shutdown(ctx context.Context) error {
 		if ctx == nil {
 			ctx = context.Background()
 		}
+		s.resetAware.stop()
 
 		s.homeLifecycleMu.Lock()
 		if supervisor := s.homeSupervisor; supervisor != nil {

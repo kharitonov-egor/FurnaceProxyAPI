@@ -1,3 +1,36 @@
+# FurnaceProxyAPI
+
+## About this fork
+
+FurnaceProxyAPI is a fork of [router-for-me/CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) with one addition: an opt-in `reset-aware` routing strategy. Subscription quota is use-it-or-lose-it. Whatever weekly quota an account has left when its weekly window resets is gone, so `reset-aware` spends the account whose weekly limit resets soonest and moves on only when that account is limited.
+
+What changed:
+
+- **`routing.strategy: reset-aware`.** An account is eligible while its five-hour window, its weekly window, and the requested model's weekly bucket are all below the thresholds. Eligible accounts are ordered by soonest weekly reset, then most weekly headroom, then round-robin. Accounts with no limit data yet come last. When no account is eligible, all of them are tried in the same order and upstream's cooldown and retry handle the limit errors.
+- **Session affinity keeps working.** A session stays on its account until that account stops being eligible, so prompt caches stay warm. New sessions start on the top-ranked account.
+- **Limit data for Codex and Claude OAuth accounts.** It comes from the rate-limit headers on every response and, for idle accounts, from the usage endpoints the official CLIs use for `/status` and `/usage`. The cache survives restarts.
+- **`GET /v8/management/routing/limits`.** Returns each account's five-hour and weekly use, reset times, model-specific weekly buckets, and rank as JSON. The [FurnaceProxyAPI-Management-Center](https://github.com/kharitonov-egor/FurnaceProxyAPI-Management-Center) panel shows it on a Limits page.
+
+```yaml
+routing:
+  strategy: reset-aware
+  session-affinity: true
+  reset-aware:
+    five-hour-threshold: 98   # percent, default 98
+    weekly-threshold: 98      # percent, default 98
+    refresh-interval: 15m     # usage polling for idle accounts; 0 disables it
+    refresh-jitter: 3m        # random extra delay per refresh
+    state-file: ""            # default: reset-aware-state.json next to config.yaml
+
+management:
+  # Optional: the panel build with the Limits page.
+  panel-github-repository: "https://github.com/kharitonov-egor/FurnaceProxyAPI-Management-Center"
+```
+
+Upstream behavior is unchanged unless `routing.strategy` is `reset-aware`. Every other strategy ignores the `reset-aware` block, and the limits endpoint only reads data. The code keeps upstream's MIT license (see [LICENSE](LICENSE)). The rest of this README is upstream's.
+
+---
+
 # CLI Proxy API
 
 English | [中文](README_CN.md) | [日本語](README_JA.md)

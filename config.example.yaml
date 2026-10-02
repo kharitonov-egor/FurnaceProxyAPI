@@ -126,7 +126,7 @@ access:
 
 # Routing strategy for selecting credentials when multiple match.
 routing:
-  strategy: "round-robin" # round-robin (default), weighted-round-robin, fill-first
+  strategy: "round-robin" # round-robin (default), weighted-round-robin, fill-first, reset-aware
   # weighted-round-robin uses each credential's integer weight (default 1, maximum 1,000,000).
   # Non-positive weights exclude the credential while this strategy is active.
   # For OAuth/file credentials, add a top-level numeric "weight" field to the auth JSON.
@@ -148,6 +148,20 @@ routing:
   # for maximum parallel concurrency.
   # Ignored when routing.session-affinity is false.
   session-affinity-subagents: true
+
+  # reset-aware drains the Codex or Claude credential whose weekly limit resets soonest,
+  # so weekly quota is spent before it expires. A credential stays eligible while its
+  # five-hour window, weekly window, and the requested model's weekly bucket are below
+  # the thresholds. With session-affinity on, a session keeps its credential until that
+  # credential stops being eligible. Limit data comes from response headers and from the
+  # usage endpoints the official CLIs use. GET /v8/management/routing/limits reports it.
+  # These settings are ignored unless strategy is reset-aware.
+  # reset-aware:
+  #   five-hour-threshold: 98     # percent; default 98
+  #   weekly-threshold: 98        # percent; default 98
+  #   refresh-interval: 15m       # usage polling for idle or stale credentials; 0 disables
+  #   refresh-jitter: 3m          # random extra delay per refresh
+  #   state-file: ""              # default: reset-aware-state.json next to this config file
 
   # When true, unprefixed model requests only use credentials without a prefix (except when prefix == model name).
   force-model-prefix: false

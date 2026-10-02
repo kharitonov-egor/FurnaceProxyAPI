@@ -29,6 +29,7 @@ type routingRuntimeState struct {
 	sessionAffinity          bool
 	sessionAffinityTTL       time.Duration
 	sessionAffinitySubagents bool
+	resetAware               resetAwareSettings
 }
 
 func normalizedRoutingRuntimeState(cfg *config.Config) routingRuntimeState {
@@ -46,6 +47,9 @@ func normalizedRoutingRuntimeState(cfg *config.Config) routingRuntimeState {
 		state.strategy = "weighted-round-robin"
 	case "fill-first", "fillfirst", "ff":
 		state.strategy = "fill-first"
+	case resetAwareStrategy, "resetaware", "ra":
+		state.strategy = resetAwareStrategy
+		state.resetAware = normalizedResetAwareSettings(cfg)
 	}
 	state.sessionAffinity = cfg.Routing.SessionAffinity
 	if ttl := strings.TrimSpace(cfg.Routing.SessionAffinityTTL); ttl != "" {
@@ -63,12 +67,18 @@ func normalizedRoutingRuntimeState(cfg *config.Config) routingRuntimeState {
 }
 
 func newRoutingSelector(state routingRuntimeState) coreauth.Selector {
+	return newRoutingSelectorWithResetAware(state, nil)
+}
+
+func newRoutingSelectorWithResetAware(state routingRuntimeState, resetAware *resetAwareRuntime) coreauth.Selector {
 	var selector coreauth.Selector
 	switch state.strategy {
 	case "weighted-round-robin":
 		selector = &coreauth.WeightedRoundRobinSelector{}
 	case "fill-first":
 		selector = &coreauth.FillFirstSelector{}
+	case resetAwareStrategy:
+		selector = resetAware.selector(state.resetAware)
 	default:
 		selector = &coreauth.RoundRobinSelector{}
 	}
@@ -215,8 +225,9 @@ func (s *Service) applyManagerConfig(ctx context.Context, commit configCommit) b
 	}
 	routingState := normalizedRoutingRuntimeState(commit.cfg)
 	if s.appliedRoutingState == nil || *s.appliedRoutingState != routingState {
-		s.coreManager.SetSelector(newRoutingSelector(routingState))
+		s.coreManager.SetSelector(newRoutingSelectorWithResetAware(routingState, s.resetAware))
 		s.appliedRoutingState = &routingState
+		s.resetAware.reconcile(s.coreManager, s.currentResetAwareConfig, routingState)
 	}
 	s.applyRetryConfig(commit.cfg)
 	store := s.resolveCooldownStateStore(commit.cfg)

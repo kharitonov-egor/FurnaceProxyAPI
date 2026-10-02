@@ -44,6 +44,7 @@ type Service struct {
 	authRegWaiters         map[string]chan struct{}
 	configSequence         uint64
 	appliedRoutingState    *routingRuntimeState
+	resetAware             *resetAwareRuntime
 
 	// configPath is the path to the configuration file.
 	configPath string
