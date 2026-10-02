@@ -978,6 +978,12 @@ func (s *SessionAffinitySelector) Pick(ctx context.Context, provider, model stri
 	opts.Metadata[cliproxyexecutor.SessionAffinityProviderMetadataKey] = provider
 	opts.Metadata[cliproxyexecutor.SessionAffinityModelMetadataKey] = model
 
+	if filter, ok := s.fallback.(CandidateFilter); ok {
+		if filtered := filter.FilterCandidates(ctx, provider, model, auths); len(filtered) > 0 {
+			auths = filtered
+		}
+	}
+
 	// Explicit harness identities are absolute authority. The LCP matcher is only
 	// consulted when no header, body, or execution-session identity is present.
 	explicitID, explicitFallbackID := extractExplicitSessionIDs(opts.Headers, opts.OriginalRequest, opts.Metadata)

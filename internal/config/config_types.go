@@ -351,7 +351,7 @@ type QuotaExceeded struct {
 // RoutingConfig configures how credentials are selected for requests.
 type RoutingConfig struct {
 	// Strategy selects the credential selection strategy.
-	// Supported values: "round-robin" (default), "weighted-round-robin", "fill-first".
+	// Supported values: "round-robin" (default), "weighted-round-robin", "fill-first", "reset-aware".
 	Strategy string `yaml:"strategy,omitempty" json:"strategy,omitempty"`
 
 	// SessionAffinity enables universal session-sticky routing for all clients.
@@ -371,6 +371,9 @@ type RoutingConfig struct {
 	// When false, subagents are distributed across the credential pool via the fallback selector.
 	// Default: true. Ignored when SessionAffinity is false.
 	SessionAffinitySubagents *bool `yaml:"session-affinity-subagents,omitempty" json:"session-affinity-subagents,omitempty"`
+
+	// ResetAware tunes the "reset-aware" strategy. Other strategies ignore it.
+	ResetAware ResetAwareRoutingConfig `yaml:"reset-aware,omitempty" json:"reset-aware,omitempty"`
 }
 
 // OAuthModelAlias defines a model ID alias for a specific channel.

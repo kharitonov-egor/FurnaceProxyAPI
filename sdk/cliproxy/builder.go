@@ -250,6 +250,7 @@ func (b *Builder) Build() (*Service, error) {
 	coreManager := b.coreManager
 	cooldownStateStore := b.cooldownStateStore
 	var appliedRoutingState *routingRuntimeState
+	resetAware := newResetAwareRuntime(b.configPath)
 	if coreManager == nil {
 		tokenStore := sdkAuth.GetTokenStore()
 		if dirSetter, ok := tokenStore.(interface{ SetBaseDir(string) }); ok && b.cfg != nil {
@@ -262,7 +263,7 @@ func (b *Builder) Build() (*Service, error) {
 		}
 
 		routingState := normalizedRoutingRuntimeState(b.cfg)
-		coreManager = coreauth.NewManager(tokenStore, newRoutingSelector(routingState), nil)
+		coreManager = coreauth.NewManager(tokenStore, newRoutingSelectorWithResetAware(routingState, resetAware), nil)
 		appliedRoutingState = &routingState
 	}
 	// Attach a default RoundTripper provider so providers can opt-in per-auth transports.
@@ -290,6 +291,7 @@ func (b *Builder) Build() (*Service, error) {
 		pluginHost:          pluginHost,
 		discoveryManager:    newDiscoveryAdvertiserManager(),
 		appliedRoutingState: appliedRoutingState,
+		resetAware:          resetAware,
 		serverOptions:       append([]api.ServerOption(nil), b.serverOptions...),
 	}
 	if b.postAuthHook != nil {
