@@ -507,7 +507,8 @@ func maskedAuthLabel(auth *Auth) string {
 	return "account " + auth.EnsureIndex()
 }
 
-// MaskEmail keeps enough of an address to tell accounts apart: "ab•••@g•••.com".
+// MaskEmail hides most of an address but keeps both ends of the local part, so accounts
+// that share a prefix stay distinguishable: "someone@example.test" -> "som•••ne@ex•••.test".
 func MaskEmail(email string) string {
 	at := strings.LastIndex(email, "@")
 	if at <= 0 {
@@ -519,7 +520,19 @@ func MaskEmail(email string) string {
 		tld = domain[dot:]
 		domain = domain[:dot]
 	}
-	return maskToken(local) + "@" + maskToken(domain) + tld
+	return maskLocalPart(local) + "@" + maskToken(domain) + tld
+}
+
+func maskLocalPart(local string) string {
+	runes := []rune(local)
+	switch {
+	case len(runes) <= 3:
+		return maskToken(local)
+	case len(runes) <= 6:
+		return string(runes[:2]) + "•••" + string(runes[len(runes)-1:])
+	default:
+		return string(runes[:3]) + "•••" + string(runes[len(runes)-2:])
+	}
 }
 
 func maskToken(value string) string {

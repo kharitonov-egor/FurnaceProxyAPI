@@ -443,7 +443,10 @@ func TestResetAwareLimitsReportRanksAndMasks(t *testing.T) {
 			t.Fatalf("email was not masked: %v", order)
 		}
 	}
-	if got := MaskEmail("someone@example.test"); got != "so•••@ex•••.test" {
+	if got := MaskEmail("someone@example.test"); got != "som•••ne@ex•••.test" {
 		t.Fatalf("MaskEmail = %q", got)
+	}
+	if a, b := MaskEmail("first.one@example.test"), MaskEmail("first.two@example.test"); a == b {
+		t.Fatalf("masked labels %q and %q must stay distinguishable", a, b)
 	}
 }
